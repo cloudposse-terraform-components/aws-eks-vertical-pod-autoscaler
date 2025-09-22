@@ -151,7 +151,7 @@ data "aws_eks_cluster_auth" "eks" {
 }
 
 provider "helm" {
-  kubernetes = {
+  kubernetes {
     host                   = local.eks_cluster_endpoint
     cluster_ca_certificate = local.cluster_ca_certificate
     token                  = local.kube_data_auth_enabled ? one(data.aws_eks_cluster_auth.eks[*].token) : null
@@ -172,7 +172,7 @@ provider "helm" {
       }
     }
   }
-  experiments = {
+  experiments {
     manifest = var.helm_manifest_experiment_enabled && module.this.enabled
   }
 }
