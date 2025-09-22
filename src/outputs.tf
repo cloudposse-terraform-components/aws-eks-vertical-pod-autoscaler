@@ -1,4 +1,9 @@
-output "mock" {
-  description = "Mock output example for the Cloud Posse Terraform component template"
-  value       = local.enabled ? "hello ${basename(abspath(path.module))}" : ""
+output "service_account_name" {
+  description = "The name of the service account created for VPA"
+  value       = try(module.vpa.service_account_name, "")
+}
+
+output "metadata" {
+  value       = module.vpa.metadata
+  description = "Block status of the deployed release"
 }
