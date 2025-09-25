@@ -37,15 +37,15 @@ module "vpa" {
     # VPA-specific values with component-specific resources
     yamlencode({
       recommender = {
-        enabled = true
+        enabled   = true
         resources = var.recommender_resources
       }
       updater = {
-        enabled = false  # Disable updater for recommendation-only mode
+        enabled   = false  # Disable updater for recommendation-only mode
         resources = var.updater_resources
       }
       admissionController = {
-        enabled = var.admission_controller_enabled
+        enabled   = var.admission_controller_enabled
         resources = var.admission_controller_resources
       }
     }),
