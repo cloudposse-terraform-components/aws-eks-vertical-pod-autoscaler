@@ -7,18 +7,20 @@ import (
 	"testing"
 	"time"
 
+	"github.com/cloudposse/test-helpers/pkg/atmos"
 	helper "github.com/cloudposse/test-helpers/pkg/atmos/component-helper"
 	awsHelper "github.com/cloudposse/test-helpers/pkg/aws"
-	"github.com/cloudposse/test-helpers/pkg/atmos"
 	"github.com/cloudposse/test-helpers/pkg/helm"
 	"github.com/gruntwork-io/terratest/modules/random"
 	"github.com/stretchr/testify/assert"
 	appsv1 "k8s.io/api/apps/v1"
 	corev1 "k8s.io/api/core/v1"
+	"k8s.io/apimachinery/pkg/api/resource"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/apimachinery/pkg/apis/meta/v1/unstructured"
 	"k8s.io/apimachinery/pkg/runtime/schema"
 	"k8s.io/client-go/dynamic"
+	"k8s.io/client-go/kubernetes"
 )
 
 type ComponentSuite struct {
@@ -125,7 +127,7 @@ func (s *ComponentSuite) findDeploymentByNameSuffix(deployments []appsv1.Deploym
 	return nil
 }
 
-func (s *ComponentSuite) waitForDeploymentReady(clientset *awsHelper.K8sClientSet, namespace, deploymentName string) {
+func (s *ComponentSuite) waitForDeploymentReady(clientset *kubernetes.Clientset, namespace, deploymentName string) {
 	for i := 0; i < 30; i++ { // Wait up to 5 minutes
 		deployment, err := clientset.AppsV1().Deployments(namespace).Get(context.Background(), deploymentName, metav1.GetOptions{})
 		if err == nil && deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
@@ -136,7 +138,7 @@ func (s *ComponentSuite) waitForDeploymentReady(clientset *awsHelper.K8sClientSe
 	assert.Fail(s.T(), fmt.Sprintf("Deployment %s did not become ready within 5 minutes", deploymentName))
 }
 
-func (s *ComponentSuite) createTestApplication(clientset *awsHelper.K8sClientSet, namespace, appName string) {
+func (s *ComponentSuite) createTestApplication(clientset *kubernetes.Clientset, namespace, appName string) {
 	deployment := &appsv1.Deployment{
 		ObjectMeta: metav1.ObjectMeta{
 			Name:      appName,
@@ -162,8 +164,8 @@ func (s *ComponentSuite) createTestApplication(clientset *awsHelper.K8sClientSet
 							Image: "nginx:stable-alpine",
 							Resources: corev1.ResourceRequirements{
 								Requests: corev1.ResourceList{
-									"cpu":    "100m",
-									"memory": "128Mi",
+									"cpu":    resource.MustParse("100m"),
+									"memory": resource.MustParse("128Mi"),
 								},
 							},
 						},
@@ -177,7 +179,7 @@ func (s *ComponentSuite) createTestApplication(clientset *awsHelper.K8sClientSet
 	assert.NoError(s.T(), err)
 }
 
-func (s *ComponentSuite) cleanupTestApplication(clientset *awsHelper.K8sClientSet, namespace, appName string) {
+func (s *ComponentSuite) cleanupTestApplication(clientset *kubernetes.Clientset, namespace, appName string) {
 	err := clientset.AppsV1().Deployments(namespace).Delete(context.Background(), appName, metav1.DeleteOptions{})
 	if err != nil {
 		fmt.Printf("Error deleting test deployment %s: %v\n", appName, err)
