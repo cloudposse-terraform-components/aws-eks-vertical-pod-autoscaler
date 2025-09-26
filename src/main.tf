@@ -41,7 +41,7 @@ module "vpa" {
         resources = var.recommender_resources
       }
       updater = {
-        enabled   = false  # Disable updater for recommendation-only mode
+        enabled   = false # Disable updater for recommendation-only mode
         resources = var.updater_resources
       }
       admissionController = {
