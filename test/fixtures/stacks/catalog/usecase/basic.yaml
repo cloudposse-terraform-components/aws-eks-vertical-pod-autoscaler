@@ -1,7 +1,12 @@
 components:
   terraform:
-    example/basic:
-      metadata:
-        component: target
+    eks/vertical-pod-autoscaler:
       vars:
-        enabled: true
+        chart_version: "4.9.0"
+        recommender_resources:
+          requests:
+            cpu: 50m
+            memory: 500Mi
+          limits:
+            cpu: 200m
+            memory: 1000Mi

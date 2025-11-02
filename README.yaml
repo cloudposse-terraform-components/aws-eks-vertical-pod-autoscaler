@@ -1,23 +1,78 @@
-name: "template"
+name: "aws-eks-vertical-pod-autoscaler"
 
 # Canonical GitHub repo
-github_repo: "cloudposse-terraform-components/template"
+github_repo: "cloudposse-terraform-components/aws-eks-vertical-pod-autoscaler"
 
 # Short description of this project
 description: |-
-  Description of this component 55
+  This component creates a Helm release for [Vertical Pod Autoscaler (VPA)](https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler) on an EKS cluster.
+  
+  [Vertical Pod Autoscaler (VPA)](https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler) is a Kubernetes addon that automatically adjusts CPU and memory resource requests for containers based on their actual usage patterns. This module deploys VPA in **recommendation mode** by default, providing resource optimization suggestions without automatically modifying existing pods.
+  
+  ### VPA Components
+  
+  The VPA consists of three main components, each with configurable resource requirements:
+  
+  - **Recommender**: Analyzes resource usage patterns and generates recommendations
+  - **Updater**: Modifies existing pods with new resource requests (disabled by default for recommendation-only mode)  
+  - **Admission Controller**: Injects resource requests into new pods (configurable, disabled by default)
 
 usage: |-
-  **Stack Level**: Regional or Global
+  **Stack Level**: Regional
 
-  Here's an example snippet for how to use this component.
+  Once the catalog file is created, the file can be imported as follows.
+
+  ```yaml
+  import:
+    - catalog/eks/vertical-pod-autoscaler
+    ...
+  ```
+
+  The default catalog values `e.g. stacks/catalog/eks/vertical-pod-autoscaler.yaml`
 
   ```yaml
   components:
     terraform:
-      foo:
+      eks/vertical-pod-autoscaler:
         vars:
-          enabled: true
+          chart: vpa
+          chart_repository: https://charts.fairwinds.com/stable
+          chart_version: "4.9.0"
+          create_namespace: false
+          kubernetes_namespace: kube-system
+          # Disable helm manifest experiment as it can cause issues with CRDs
+          helm_manifest_experiment_enabled: false
+          
+          # VPA component enablement (recommendation mode by default)
+          admission_controller_enabled: false
+          
+          # Component-specific resource configurations
+          recommender_resources:
+            limits:
+              cpu: 200m
+              memory: 1000Mi
+            requests:
+              cpu: 50m
+              memory: 500Mi
+          
+          updater_resources:
+            limits:
+              cpu: 200m
+              memory: 1000Mi
+            requests:
+              cpu: 50m
+              memory: 500Mi
+              
+          admission_controller_resources:
+            limits:
+              cpu: 200m
+              memory: 500Mi
+            requests:
+              cpu: 50m
+              memory: 200Mi
+          
+          # You can use `chart_values` to set any other chart options
+          chart_values: {}
   ```
 
 
@@ -30,14 +85,16 @@ tags:
   - aws
   - components
   - terraform-components
-  - root
-  - geodesic
-  - reference-implementation
-  - reference-architecture
+  - eks
+  - kubernetes
+  - vertical-pod-autoscaler
+  - vpa
+  - helm
+  - autoscaling
 
 # Categories of this project
 categories:
-  - terraform-modules/root
+  - terraform-modules/kubernetes
   - terraform-components
 
 # License of this project
@@ -46,19 +103,19 @@ license: "APACHE2"
 # Badges to display
 badges:
   - name: "Latest Release"
-    image: "https://img.shields.io/github/release/cloudposse-terraform-components/template.svg?style=for-the-badge"
-    url: "https://github.com/cloudposse-terraform-components/template/releases/latest"
+    image: "https://img.shields.io/github/release/cloudposse-terraform-components/aws-eks-vertical-pod-autoscaler.svg?style=for-the-badge"
+    url: "https://github.com/cloudposse-terraform-components/aws-eks-vertical-pod-autoscaler/releases/latest"
   - name: "Slack Community"
     image: "https://slack.cloudposse.com/for-the-badge.svg"
     url: "https://slack.cloudposse.com"
 
 references:
-  - name: "Cloud Posse Documentation"
-    description: "Complete documentation for the Cloud Posse solution"
-    url: "https://docs.cloudposse.com"
-  - name: "Reference Architectures"
-    description: "Launch effortlessly with our turnkey reference architectures, built either by your team or ours."
-    url: "https://cloudposse.com/"
+  - name: "VPA"
+    description: "Kubernetes Vertical Pod Autoscaler"
+    url: "https://github.com/kubernetes/autoscaler/tree/master/vertical-pod-autoscaler"
+  - name: "VPA Helm Chart"
+    description: "Fairwinds VPA Helm Chart"
+    url: "https://github.com/FairwindsOps/charts/tree/master/stable/vpa"
 
 related:
 - name: "Cloud Posse Terraform Modules"
