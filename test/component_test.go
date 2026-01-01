@@ -69,7 +69,9 @@ func (s *ComponentSuite) TestBasic() {
 	// Poll for VPA recommender deployment with timeout
 	recommenderDeployment := s.pollForDeploymentByNameSuffix(clientset, namespace, "recommender", 2*time.Minute)
 	assert.NotNil(s.T(), recommenderDeployment, "VPA recommender deployment not found within timeout period")
-	assert.Equal(s.T(), *recommenderDeployment.Spec.Replicas, int32(1))
+	assert.NotNil(s.T(), recommenderDeployment.Spec.Replicas, "VPA recommender deployment Spec.Replicas is nil")
+	replicas := s.getDeploymentReplicas(recommenderDeployment)
+	assert.Equal(s.T(), replicas, int32(1))
 
 	// Wait for VPA recommender to be ready
 	s.waitForDeploymentReady(clientset, namespace, recommenderDeployment.Name)
@@ -122,6 +124,15 @@ func (s *ComponentSuite) findDeploymentByNameSuffix(deployments []appsv1.Deploym
 	return nil
 }
 
+// getDeploymentReplicas safely retrieves the replica count from a deployment.
+// Returns the replica count, defaulting to int32(1) if Spec or Spec.Replicas is nil.
+func (s *ComponentSuite) getDeploymentReplicas(deployment *appsv1.Deployment) int32 {
+	if deployment == nil || deployment.Spec.Replicas == nil {
+		return int32(1)
+	}
+	return *deployment.Spec.Replicas
+}
+
 func (s *ComponentSuite) pollForDeploymentByNameSuffix(clientset *kubernetes.Clientset, namespace, suffix string, timeout time.Duration) *appsv1.Deployment {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
@@ -153,8 +164,11 @@ func (s *ComponentSuite) pollForDeploymentByNameSuffix(clientset *kubernetes.Cli
 func (s *ComponentSuite) waitForDeploymentReady(clientset *kubernetes.Clientset, namespace, deploymentName string) {
 	for i := 0; i < 30; i++ { // Wait up to 5 minutes
 		deployment, err := clientset.AppsV1().Deployments(namespace).Get(context.Background(), deploymentName, metav1.GetOptions{})
-		if err == nil && deployment.Status.ReadyReplicas == *deployment.Spec.Replicas {
-			return
+		if err == nil {
+			expectedReplicas := s.getDeploymentReplicas(deployment)
+			if deployment.Status.ReadyReplicas == expectedReplicas {
+				return
+			}
 		}
 		time.Sleep(10 * time.Second)
 	}
