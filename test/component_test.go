@@ -66,14 +66,9 @@ func (s *ComponentSuite) TestBasic() {
 	assert.NoError(s.T(), err)
 	assert.NotNil(s.T(), clientset)
 
-	// Find VPA deployments dynamically
-	deployments, err := clientset.AppsV1().Deployments(namespace).List(context.Background(), metav1.ListOptions{})
-	assert.NoError(s.T(), err)
-	assert.NotEmpty(s.T(), deployments.Items)
-
-	// Verify VPA recommender deployment exists and is running
-	recommenderDeployment := s.findDeploymentByNameSuffix(deployments.Items, "recommender")
-	assert.NotNil(s.T(), recommenderDeployment, "VPA recommender deployment not found")
+	// Poll for VPA recommender deployment with timeout
+	recommenderDeployment := s.pollForDeploymentByNameSuffix(clientset, namespace, "recommender", 2*time.Minute)
+	assert.NotNil(s.T(), recommenderDeployment, "VPA recommender deployment not found within timeout period")
 	assert.Equal(s.T(), *recommenderDeployment.Spec.Replicas, int32(1))
 
 	// Wait for VPA recommender to be ready
@@ -125,6 +120,34 @@ func (s *ComponentSuite) findDeploymentByNameSuffix(deployments []appsv1.Deploym
 		}
 	}
 	return nil
+}
+
+func (s *ComponentSuite) pollForDeploymentByNameSuffix(clientset *kubernetes.Clientset, namespace, suffix string, timeout time.Duration) *appsv1.Deployment {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	defer cancel()
+
+	ticker := time.NewTicker(2 * time.Second)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			assert.Fail(s.T(), fmt.Sprintf("Timeout waiting for deployment with suffix '%s' in namespace '%s' after %v", suffix, namespace, timeout))
+			return nil
+		case <-ticker.C:
+			deployments, err := clientset.AppsV1().Deployments(namespace).List(context.Background(), metav1.ListOptions{})
+			if err != nil {
+				// Log error but continue polling
+				fmt.Printf("Error listing deployments: %v\n", err)
+				continue
+			}
+
+			deployment := s.findDeploymentByNameSuffix(deployments.Items, suffix)
+			if deployment != nil {
+				return deployment
+			}
+		}
+	}
 }
 
 func (s *ComponentSuite) waitForDeploymentReady(clientset *kubernetes.Clientset, namespace, deploymentName string) {
