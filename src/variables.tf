@@ -114,7 +114,7 @@ variable "kubernetes_namespace" {
 variable "timeout" {
   type        = number
   description = "Time in seconds to wait for any individual kubernetes operation (like Jobs for hooks). Defaults to `300` seconds"
-  default     = null
+  default     = 300
 }
 
 variable "cleanup_on_fail" {
@@ -144,7 +144,7 @@ variable "chart_values" {
 variable "rbac_enabled" {
   type        = bool
   default     = true
-  description = "Service Account for pods."
+  description = "Enable RBAC resources (ServiceAccount, Role, RoleBinding) for VPA components."
 }
 
 variable "admission_controller_enabled" {
